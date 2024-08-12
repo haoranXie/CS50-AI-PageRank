@@ -57,7 +57,15 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    totalPages = len(corpus)
+    numLinks = len(corpus[page])
+
+    probDistribution = dict()
+    for page in corpus:
+        probDistribution[page] = (1-damping_factor) / totalPages
+        if page in numLinks:
+            probDistribution[page] += damping_factor / numLinks
+    return probDistribution
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,7 +77,15 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    pageRanks = {page: 0 for page in corpus}
+    currentPage = random.choice(list(corpus.keys()))
+    for sample in range(n):
+        pageRanks[currentPage] +=1
+        model = transition_model(corpus, currentPage, damping_factor)
+        currentPage = random.choices(pages = list(model.keys()),weights = list(model.values()), k = 1)[0]
+    pageRanks = {page: rank/n for page, rank in pageRanks.items()}
+
+
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -81,7 +97,23 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    totalPages = len(corpus)
+    pageRanks = {page: 1/totalPages for page in corpus}    
+    change = float('inf')
+
+    while change>0.001:
+        newRanks = {}
+        for page in corpus:
+            pageProbability = (1-damping_factor) / totalPages
+            for possiblePage in corpus:
+                if page in corpus[possiblePage]: #If this possible page is linked to the current page
+                    pageProbability += damping_factor * pageRanks[possiblePage] / len(corpus[possiblePage]) #Add probability of going to the current page
+                elif not corpus[possiblePage]: #If this possible page has no outbound links
+                    pageProbability += damping_factor * pageRanks[possiblePage] / totalPages #Add probability of jumping randomly to the current page
+            newRanks[page] = pageProbability
+        change = max(abs(newRanks[page] - pageRanks[page]) for page in pageRanks)
+        pageRanks = newRanks
+    return pageRanks
 
 
 if __name__ == "__main__":
